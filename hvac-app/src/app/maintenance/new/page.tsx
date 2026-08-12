@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
@@ -12,7 +12,7 @@ import { flushOutbox } from '@/lib/offline/sync'
 import { SEASON_LABELS, EQUIPMENT_TYPE_LABELS } from '@/types'
 import type { Equipment, Season, MaintenanceTier, MaintenanceTask, TaskRecord, PhotoRecord } from '@/types'
 
-export default function NewMaintenancePage() {
+function NewMaintenancePageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const equipmentId = searchParams.get('equipment')
@@ -129,9 +129,6 @@ export default function NewMaintenancePage() {
   function handleAddPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    // Kept entirely on-device until save — no network needed to take
-    // photos in a basement or on a roof with no signal. The actual
-    // upload happens in handleSave (immediately if online, queued if not).
     const previewUrl = URL.createObjectURL(file)
     setPhotos((prev) => [...prev, { url: previewUrl, caption: activePhotoCaption }])
     setPhotoFiles((prev) => [...prev, file])
@@ -144,9 +141,6 @@ export default function NewMaintenancePage() {
     setSaving(true)
     setError(null)
 
-    // getSession() reads the cached JWT from local storage — unlike
-    // getUser(), it doesn't require a network round trip, so this
-    // works with zero connection.
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) {
       setError('Not signed in — sign in once with a connection, then this page works offline.')
@@ -193,10 +187,6 @@ export default function NewMaintenancePage() {
       })
     }
 
-    // Try to sync immediately if we have a connection — most visits
-    // will have signal, so this keeps the fast path fast. If it's
-    // offline or the sync fails, the entry just sits in the outbox
-    // and the sync status bar picks it up.
     if (navigator.onLine) {
       const result = await flushOutbox()
       if (result.failed === 0 && result.synced > 0) {
@@ -233,7 +223,6 @@ export default function NewMaintenancePage() {
 
   return (
     <div className="p-4 max-w-2xl mx-auto pb-24">
-      {/* Header */}
       <div className="flex items-center gap-3 mb-4">
         <Link href={`/equipment/${equipment.id}`} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500">
           <ArrowLeft className="w-5 h-5" />
@@ -248,7 +237,6 @@ export default function NewMaintenancePage() {
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg mb-4">{error}</div>
       )}
 
-      {/* Season selector */}
       <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4">
         <label className="block text-sm font-medium text-gray-700 mb-2">Season / Service Type</label>
         <div className="grid grid-cols-4 gap-2">
@@ -269,7 +257,6 @@ export default function NewMaintenancePage() {
         </div>
       </div>
 
-      {/* Progress */}
       <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-medium text-gray-700">Checklist Progress</span>
@@ -283,7 +270,6 @@ export default function NewMaintenancePage() {
         </div>
       </div>
 
-      {/* Checklist */}
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden mb-4">
         <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
           <h2 className="text-sm font-semibold text-gray-700">
@@ -347,7 +333,6 @@ export default function NewMaintenancePage() {
         </div>
       </div>
 
-      {/* Filter Section */}
       <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4">
         <h3 className="text-sm font-semibold text-gray-700 mb-3">Filter Service</h3>
         <div className="grid grid-cols-4 gap-2 mb-3">
@@ -380,7 +365,6 @@ export default function NewMaintenancePage() {
         )}
       </div>
 
-      {/* Electrical Measurements */}
       <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4">
         <h3 className="text-sm font-semibold text-gray-700 mb-3">Electrical Readings</h3>
         {equipment && !equipment.has_blower_motor && !equipment.has_venter_motor && (
@@ -419,7 +403,6 @@ export default function NewMaintenancePage() {
         </div>
       </div>
 
-      {/* Refrigeration Readings */}
       <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4">
         <h3 className="text-sm font-semibold text-gray-700 mb-3">Refrigeration Readings</h3>
         <div className="grid grid-cols-3 gap-2">
@@ -446,7 +429,6 @@ export default function NewMaintenancePage() {
         </div>
       </div>
 
-      {/* Air / Heating Readings */}
       <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4">
         <h3 className="text-sm font-semibold text-gray-700 mb-3">Air & Heating Readings</h3>
         <div className="grid grid-cols-3 gap-2">
@@ -474,7 +456,6 @@ export default function NewMaintenancePage() {
         </div>
       </div>
 
-      {/* Photos */}
       <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4">
         <h3 className="text-sm font-semibold text-gray-700 mb-3">Service Photos</h3>
         <div className="grid grid-cols-3 gap-2 mb-3">
@@ -501,7 +482,6 @@ export default function NewMaintenancePage() {
         </label>
       </div>
 
-      {/* Notes */}
       <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4">
         <h3 className="text-sm font-semibold text-gray-700 mb-2">Technician Notes & Recommendations</h3>
         <p className="text-xs text-gray-400 mb-2">Tap "Talk to app" and describe what you found — the app will clean it up into report language.</p>
@@ -550,7 +530,6 @@ export default function NewMaintenancePage() {
         )}
       </div>
 
-      {/* Save Button — sticky bottom */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 flex gap-3">
         <button
           onClick={handleSave}
@@ -565,5 +544,13 @@ export default function NewMaintenancePage() {
         </button>
       </div>
     </div>
+  )
+}
+
+export default function NewMaintenancePage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-center text-gray-400">Loading…</div>}>
+      <NewMaintenancePageInner />
+    </Suspense>
   )
 }

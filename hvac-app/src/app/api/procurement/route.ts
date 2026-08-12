@@ -77,7 +77,7 @@ export async function GET(request: Request) {
         bySupplier.get(supplierId)!.push(np)
       }
 
-      for (const [supplierId, items] of bySupplier) {
+      for (const [supplierId, items] of Array.from(bySupplier)) {
         if (supplierId === 'unassigned') continue // needs manual assignment first
 
         const { data: supplier } = await supabase

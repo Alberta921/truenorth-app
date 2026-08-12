@@ -20,8 +20,6 @@ export async function POST(request: NextRequest) {
       tenant: Tenant
     }
 
-    // Build task list with descriptions
-    // We store task IDs in tasks_completed — map them back to descriptions
     const { getChecklist } = await import('@/lib/maintenance/checklists')
     const allTasks = getChecklist(equipment.equipment_type, record.season, record.maintenance_tier)
     const taskMap = Object.fromEntries(allTasks.map(t => [t.id, t.description]))
@@ -33,7 +31,6 @@ export async function POST(request: NextRequest) {
       notes: task.notes,
     }))
 
-    // Generate PDF buffer
     const pdfBuffer = await renderToBuffer(
       React.createElement(MaintenanceReportPDF, {
         record,
@@ -41,10 +38,9 @@ export async function POST(request: NextRequest) {
         facility,
         tenant,
         tasksCompleted: tasksWithDescriptions,
-      })
+      }) as any
     )
 
-    // Upload to Supabase storage
     const { data: profile } = await supabase.from('users').select('tenant_id').eq('id', user.id).single()
     const fileName = `report-${recordId}-${Date.now()}.pdf`
     const path = `${profile!.tenant_id}/${fileName}`
@@ -55,12 +51,11 @@ export async function POST(request: NextRequest) {
 
     if (uploadError) throw new Error('Failed to save PDF: ' + uploadError.message)
 
-    // Get signed URL (reports bucket is private)
-    const { data: { signedUrl } } = await supabase.storage
+    const { data: signedUrlData } = await supabase.storage
       .from('reports')
-      .createSignedUrl(path, 60 * 60 * 24 * 30) // 30 days
+      .createSignedUrl(path, 60 * 60 * 24 * 30)
+    const signedUrl = signedUrlData?.signedUrl
 
-    // Update record with PDF URL
     await supabase
       .from('maintenance_records')
       .update({ report_pdf_url: signedUrl })

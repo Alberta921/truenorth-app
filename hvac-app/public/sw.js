@@ -6,8 +6,8 @@
 // falls back to the in-page 'online' event listener, which is why
 // sync.ts is also called directly from the app, not only from here).
 
-const SHELL_CACHE = 'hvac-app-shell-v1'
-const SHELL_ASSETS = ['/', '/dashboard', '/facilities', '/maintenance/new', '/offline']
+const SHELL_CACHE = 'hvac-app-shell-v2'
+const SHELL_ASSETS = ['/offline']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -39,21 +39,24 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // App shell / static assets: cache-first for instant load with zero
-  // connection, falling back to network and caching the result.
+  // App shell / static assets: network-first, so a new deploy is always
+  // picked up immediately — falling back to the cached copy only when
+  // there's truly no connection (that's the offline-support part).
+  // Cache-first was tried initially but meant fixes never showed up
+  // until the cache was manually cleared, which isn't acceptable for
+  // an app still being actively updated.
   event.respondWith(
-    caches.match(request).then((cached) => {
-      if (cached) return cached
-      return fetch(request)
-        .then((response) => {
-          if (response.ok) {
-            const clone = response.clone()
-            caches.open(SHELL_CACHE).then((cache) => cache.put(request, clone))
-          }
-          return response
-        })
-        .catch(() => caches.match('/offline'))
-    })
+    fetch(request)
+      .then((response) => {
+        if (response.ok) {
+          const clone = response.clone()
+          caches.open(SHELL_CACHE).then((cache) => cache.put(request, clone))
+        }
+        return response
+      })
+      .catch(() =>
+        caches.match(request).then((cached) => cached || caches.match('/offline'))
+      )
   )
 })
 

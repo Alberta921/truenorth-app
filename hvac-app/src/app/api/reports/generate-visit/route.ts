@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     })
 
     const pdfBuffer = await renderToBuffer(
-      React.createElement(FacilityVisitReportPDF, { visit, facility: visit.facility, tenant, units })
+      React.createElement(FacilityVisitReportPDF, { visit, facility: visit.facility, tenant, units }) as any
     )
 
     const fileName = `visit-report-${visitId}-${Date.now()}.pdf`
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       await sendEmail({
         to: visit.facility.contact_email,
         fromName: tenant?.name ?? 'Maintenance Manager',
-        subject: `${visit.season} maintenance report \u2014 ${visit.facility.name}`,
+        subject: `${visit.season} maintenance report — ${visit.facility.name}`,
         html: buildReportEmailHTML({
           facilityName: visit.facility.name,
           season: visit.season,
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
       await sendEmail({
         to: tenant.manager_email,
         fromName: tenant.name,
-        subject: `${flaggedUnits.length} item(s) flagged \u2014 ${visit.facility.name}`,
+        subject: `${flaggedUnits.length} item(s) flagged — ${visit.facility.name}`,
         html: buildManagerNotificationHTML({
           facilityName: visit.facility.name,
           flaggedCount: flaggedUnits.length,

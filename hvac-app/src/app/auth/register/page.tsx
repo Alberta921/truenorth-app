@@ -49,30 +49,24 @@ export default function RegisterPage() {
       return
     }
 
-    // 2. Create tenant
-    const { data: tenant, error: tenantError } = await supabase
-      .from('tenants')
-      .insert({ name: form.companyName, contact_email: form.email })
-      .select()
-      .single()
-
-    if (tenantError || !tenant) {
-      setError(`Failed to create company profile: ${tenantError?.message || 'unknown error'}`)
-      setLoading(false)
-      return
-    }
-
-    // 3. Create user profile
-    const { error: userError } = await supabase.from('users').insert({
-      id: authData.user.id,
-      tenant_id: tenant.id,
-      email: form.email,
-      full_name: form.fullName,
-      role: 'company_admin',
+    // 2. Create tenant + user profile via a server route using the
+    // service role key — sidesteps RLS timing issues around a
+    // brand-new signup instead of inserting directly from here.
+    const profileRes = await fetch('/api/auth/register-profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: authData.user.id,
+        email: form.email,
+        companyName: form.companyName,
+        fullName: form.fullName,
+      }),
     })
 
-    if (userError) {
-      setError(`Failed to create user profile: ${userError.message}`)
+    const profileResult = await profileRes.json()
+
+    if (!profileRes.ok) {
+      setError(profileResult.error || 'Failed to set up your account')
       setLoading(false)
       return
     }

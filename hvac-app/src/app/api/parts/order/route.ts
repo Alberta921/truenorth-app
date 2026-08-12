@@ -22,8 +22,6 @@ export async function POST(request: Request) {
 
   const { data: tenant } = await supabase.from('tenants').select('name').eq('id', profile.tenant_id).single()
 
-  // Pull full part records (server-side, so cost prices never travel
-  // through the client cart payload for a non-admin session).
   const partIds = items.map((i: any) => i.part_id)
   const { data: parts } = await supabase
     .from('parts_catalog')
@@ -52,7 +50,7 @@ export async function POST(request: Request) {
   const placedOrders = []
   const needed = neededByDate || new Date().toISOString().split('T')[0]
 
-  for (const [supplierId, orderItems] of bySupplier) {
+  for (const [supplierId, orderItems] of Array.from(bySupplier)) {
     const { data: supplier } = await supabase.from('supplier_contacts').select('*').eq('id', supplierId).single()
     if (!supplier?.order_email) {
       placedOrders.push({ supplier: supplier?.name ?? supplierId, status: 'skipped', reason: 'No order email on file for this supplier' })

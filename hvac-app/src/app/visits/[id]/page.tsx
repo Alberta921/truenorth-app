@@ -46,7 +46,7 @@ export default async function VisitDetailPage({ params }: { params: { id: string
       <div className="bg-white border border-gray-200 rounded-xl p-5 mb-5">
         <h1 className="text-xl font-bold text-gray-900">{visit.facility?.name}</h1>
         <p className="text-sm text-gray-500 mt-1">
-          {SEASON_LABELS[visit.season]} \u00b7 {visit.scheduled_date} {visit.technician?.full_name ? `\u00b7 ${visit.technician.full_name}` : ''}
+          {SEASON_LABELS[visit.season as keyof typeof SEASON_LABELS]} · {visit.scheduled_date} {visit.technician?.full_name ? `· ${visit.technician.full_name}` : ''}
         </p>
         <p className="text-xs text-gray-400 mt-2">
           {completedEquipmentIds.size} of {equipment?.length ?? 0} unit(s) done this visit
@@ -78,7 +78,7 @@ export default async function VisitDetailPage({ params }: { params: { id: string
       )}
       {visit.status === 'completed' && (
         <p className="text-center text-sm text-green-700 bg-green-50 rounded-lg py-3">
-          Visit complete \u2014 report sent to client
+          Visit complete — report sent to client
         </p>
       )}
     </div>

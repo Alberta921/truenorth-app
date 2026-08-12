@@ -50,7 +50,7 @@ export default async function VisitsPage() {
             <Link key={v.id} href={`/visits/${v.id}`} className="flex items-center justify-between bg-white border border-gray-200 rounded-xl p-4 hover:border-blue-300 transition-colors">
               <div>
                 <p className="font-semibold text-gray-900">{v.facility?.name}</p>
-                <p className="text-sm text-gray-500">{SEASON_LABELS[v.season]} \u2014 {v.scheduled_date} {v.technician?.full_name ? `\u00b7 ${v.technician.full_name}` : ''}</p>
+                <p className="text-sm text-gray-500">{SEASON_LABELS[v.season as keyof typeof SEASON_LABELS]} — {v.scheduled_date} {v.technician?.full_name ? `· ${v.technician.full_name}` : ''}</p>
               </div>
               <span className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium ${STATUS_STYLE[v.status]}`}>
                 {v.status === 'completed' && <CheckCircle2 className="w-3 h-3" />}

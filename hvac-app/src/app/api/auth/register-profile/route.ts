@@ -1,11 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 
-// Creates the tenant + user profile rows using the service role key
-// (server-side, bypasses RLS entirely) instead of the client's own
-// just-created session. This sidesteps a timing issue where a brand
-// new signup isn't fully "confirmed" yet at the exact moment the
-// profile needs to be created, which RLS was correctly blocking.
 export async function POST(request: Request) {
   try {
     const { userId, email, companyName, fullName } = await request.json()

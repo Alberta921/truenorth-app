@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
@@ -11,7 +11,7 @@ import type { EquipmentType, MaintenanceTier, EquipmentIdentificationResult } fr
 const EQUIPMENT_TYPES = Object.entries(EQUIPMENT_TYPE_LABELS) as [EquipmentType, string][]
 const TIERS: [MaintenanceTier, string][] = [[1, 'Tier 1 — Premium'], [2, 'Tier 2 — Standard'], [3, 'Tier 3 — Basic']]
 
-export default function NewEquipmentPage() {
+function NewEquipmentPageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const facilityId = searchParams.get('facility')
@@ -77,7 +77,6 @@ export default function NewEquipmentPage() {
     setError(null)
 
     try {
-      // Upload nameplate photo temporarily for AI analysis
       const formData = new FormData()
       if (nameplatePhotoFile) formData.append('image', nameplatePhotoFile)
       if (nameplatePhotoPreview) formData.append('imageData', nameplatePhotoPreview)
@@ -94,7 +93,6 @@ export default function NewEquipmentPage() {
 
       const result: EquipmentIdentificationResult = await response.json()
 
-      // Auto-fill form with AI results
       setForm(prev => ({
         ...prev,
         equipment_type: result.equipment_type || prev.equipment_type,
@@ -135,7 +133,6 @@ export default function NewEquipmentPage() {
     let unit_photo_url: string | undefined
     let nameplate_photo_url: string | undefined
 
-    // Upload photos
     for (const [file, bucket, field] of [
       [unitPhotoFile, 'equipment-photos', 'unit'],
       [nameplatePhotoFile, 'equipment-photos', 'nameplate'],
@@ -209,7 +206,6 @@ export default function NewEquipmentPage() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        {/* Photos */}
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1.5">Unit Photo</label>
@@ -255,7 +251,6 @@ export default function NewEquipmentPage() {
           </div>
         </div>
 
-        {/* AI Identify Button */}
         {nameplatePhotoPreview && (
           <button
             type="button"
@@ -277,7 +272,6 @@ export default function NewEquipmentPage() {
           </button>
         )}
 
-        {/* Equipment Name */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Equipment Name / Label *</label>
           <input
@@ -291,7 +285,6 @@ export default function NewEquipmentPage() {
           <p className="text-xs text-gray-400 mt-1">Your label for this unit (e.g. RTU-1, Furnace 2)</p>
         </div>
 
-        {/* Equipment Type */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Equipment Type *</label>
           <select
@@ -342,7 +335,6 @@ export default function NewEquipmentPage() {
           </p>
         </div>
 
-        {/* Motor components — drives which amp readings the checklist asks for */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Motors on This Unit</label>
           <div className="grid grid-cols-2 gap-2">
@@ -360,7 +352,6 @@ export default function NewEquipmentPage() {
           </p>
         </div>
 
-        {/* Filter size + quantity — feeds both the tech's checklist and parts pre-ordering */}
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Filter Size</label>
@@ -384,7 +375,6 @@ export default function NewEquipmentPage() {
           </div>
         </div>
 
-        {/* Manufacturer / Model */}
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Manufacturer</label>
@@ -502,5 +492,13 @@ export default function NewEquipmentPage() {
         </button>
       </form>
     </div>
+  )
+}
+
+export default function NewEquipmentPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-center text-gray-400">Loading…</div>}>
+      <NewEquipmentPageInner />
+    </Suspense>
   )
 }

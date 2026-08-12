@@ -525,7 +525,7 @@ export default function NewMaintenancePage() {
         {flagForFollowUp && (
           <div className="mt-2 space-y-2">
             <input
-              placeholder="Short title (e.g. \"Compressor contactor pitted, recommend replacement\")"
+              placeholder="Short title (e.g. &quot;Compressor contactor pitted, recommend replacement&quot;)"
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
               value={flagTitle}
               onChange={(e) => setFlagTitle(e.target.value)}

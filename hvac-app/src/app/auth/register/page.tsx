@@ -57,7 +57,7 @@ export default function RegisterPage() {
       .single()
 
     if (tenantError || !tenant) {
-      setError('Failed to create company profile')
+      setError(`Failed to create company profile: ${tenantError?.message || 'unknown error'}`)
       setLoading(false)
       return
     }
@@ -72,7 +72,7 @@ export default function RegisterPage() {
     })
 
     if (userError) {
-      setError('Failed to create user profile')
+      setError(`Failed to create user profile: ${userError.message}`)
       setLoading(false)
       return
     }

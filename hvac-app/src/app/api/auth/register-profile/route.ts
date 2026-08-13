@@ -3,9 +3,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 
 // Creates the tenant + user profile rows using the service role key
 // (server-side, bypasses RLS entirely) instead of the client's own
-// just-created session. This sidesteps a timing issue where a brand
-// new signup isn't fully "confirmed" yet at the exact moment the
-// profile needs to be created, which RLS was correctly blocking.
+// just-created session.
 export async function POST(request: Request) {
   try {
     const { userId, email, companyName, fullName } = await request.json()
@@ -15,6 +13,21 @@ export async function POST(request: Request) {
     }
 
     const supabase = createServiceClient()
+
+    // Verify this is a real, existing auth user before creating anything.
+    // Supabase deliberately returns an obfuscated/fake user id from
+    // signUp() when the email is already registered (an anti-enumeration
+    // security measure) — if we don't check this, we silently create a
+    // tenant for a user that doesn't really exist, then fail on the next
+    // insert with a confusing foreign-key error.
+    const { data: authCheck, error: authCheckError } = await supabase.auth.admin.getUserById(userId)
+
+    if (authCheckError || !authCheck?.user) {
+      return NextResponse.json(
+        { error: 'This email may already be registered. Try signing in instead, or use a different email address.' },
+        { status: 409 }
+      )
+    }
 
     const { data: tenant, error: tenantError } = await supabase
       .from('tenants')
@@ -29,23 +42,13 @@ export async function POST(request: Request) {
       )
     }
 
-    // Occasionally there's a brief moment right after signUp() where
-    // auth.users hasn't fully settled from this connection's point of
-    // view yet, which the users.id foreign key check catches as a
-    // false "doesn't exist." Retry briefly instead of failing outright.
-    let userError: any = null
-    for (let attempt = 0; attempt < 4; attempt++) {
-      const { error } = await supabase.from('users').insert({
-        id: userId,
-        tenant_id: tenant.id,
-        email,
-        full_name: fullName,
-        role: 'company_admin',
-      })
-      userError = error
-      if (!error) break
-      if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, 500))
-    }
+    const { error: userError } = await supabase.from('users').insert({
+      id: userId,
+      tenant_id: tenant.id,
+      email,
+      full_name: fullName,
+      role: 'company_admin',
+    })
 
     if (userError) {
       return NextResponse.json(

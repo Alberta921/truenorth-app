@@ -52,21 +52,32 @@ export default function RegisterPage() {
     // 2. Create tenant + user profile via a server route using the
     // service role key — sidesteps RLS timing issues around a
     // brand-new signup instead of inserting directly from here.
-    const profileRes = await fetch('/api/auth/register-profile', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId: authData.user.id,
-        email: form.email,
-        companyName: form.companyName,
-        fullName: form.fullName,
-      }),
-    })
+    try {
+      const profileRes = await fetch('/api/auth/register-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: authData.user.id,
+          email: form.email,
+          companyName: form.companyName,
+          fullName: form.fullName,
+        }),
+      })
 
-    const profileResult = await profileRes.json()
+      let profileResult: any = {}
+      try {
+        profileResult = await profileRes.json()
+      } catch {
+        profileResult = { error: `Server returned an unexpected response (status ${profileRes.status})` }
+      }
 
-    if (!profileRes.ok) {
-      setError(profileResult.error || 'Failed to set up your account')
+      if (!profileRes.ok) {
+        setError(profileResult.error || 'Failed to set up your account')
+        setLoading(false)
+        return
+      }
+    } catch (err: any) {
+      setError(`Could not reach the server: ${err?.message || 'unknown error'}`)
       setLoading(false)
       return
     }

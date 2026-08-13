@@ -37,6 +37,16 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   const pathname = request.nextUrl.pathname
+
+  // API routes handle their own authorization internally (or, like
+  // register-profile, intentionally run before a session fully exists)
+  // — they should never get redirected to the login page. A redirected
+  // POST turning into a POST against an HTML page is exactly what was
+  // producing the confusing 405 errors.
+  if (pathname.startsWith('/api/')) {
+    return supabaseResponse
+  }
+
   const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route))
 
   if (!user && !isPublicRoute) {

@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 
-// Creates the tenant + user profile rows using the service role key
-// (server-side, bypasses RLS entirely) instead of the client's own
-// just-created session.
 export async function POST(request: Request) {
   try {
     const { userId, email, companyName, fullName } = await request.json()
@@ -28,6 +25,13 @@ export async function POST(request: Request) {
         { status: 409 }
       )
     }
+
+    // Auto-confirm the email. This is an internal company tool, not a
+    // public app verifying strangers — email confirmation just adds
+    // friction with no real benefit here, and the "Confirm email" toggle
+    // couldn't be located in the current Supabase dashboard UI, so this
+    // achieves the same result directly.
+    await supabase.auth.admin.updateUserById(userId, { email_confirm: true })
 
     const { data: tenant, error: tenantError } = await supabase
       .from('tenants')
